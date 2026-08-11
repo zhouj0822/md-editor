@@ -15,7 +15,14 @@ export const docxDeserializer = (rtf: string, html: string): any[] => {
   // image tags have to be cleaned out and converted
   const imageTags = imagePastingListener(rtf, html);
   if (html) {
-    const parsed_html = new DOMParser().parseFromString(html, 'text/html');
+    // 归一化 Windows 换行符 \r\n / \r → \n：module.ts 文本节点处理用 /\n(?!\n)/g
+    // 只替换 \n，Windows \r\n 的 \r 会残留并被 slate 当换行，导致 Windows 粘贴
+    // 多出换行（Mac 用 \n 不受影响）。仅作用于 DOM 解析，不影响 imagePastingListener。
+    const normalizedHtml = html.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const parsed_html = new DOMParser().parseFromString(
+      normalizedHtml,
+      'text/html',
+    );
     const fragmentList = deserialize(
       parsed_html.body,
       imageTags || [],
